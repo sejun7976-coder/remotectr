@@ -315,8 +315,19 @@ function renderDevices() {
     if (!card) {
       card = elements.template.content.firstElementChild.cloneNode(true);
       card.dataset.deviceId = device.id;
+      const menuButton = card.querySelector(".device-menu-button");
+      const menuPopover = card.querySelector(".device-menu-popover");
       const deleteButton = card.querySelector(".device-delete-button");
-      deleteButton.addEventListener("click", () => removeDevice(card.dataset.deviceId, card.dataset.deviceName, deleteButton));
+      menuButton.addEventListener("click", () => {
+        const shouldOpen = menuPopover.hidden;
+        closeDeviceMenus();
+        menuPopover.hidden = !shouldOpen;
+        menuButton.setAttribute("aria-expanded", String(shouldOpen));
+      });
+      deleteButton.addEventListener("click", () => {
+        closeDeviceMenus();
+        removeDevice(card.dataset.deviceId, card.dataset.deviceName, deleteButton);
+      });
     }
     if (card.dataset.status !== status) card.dataset.status = status;
     const deviceName = device.device_name || device.device_key;
@@ -331,7 +342,7 @@ function renderDevices() {
     setText(card, ".idle-time", isOffline ? "—" : (status === "away" ? formatIdleMinutes(device.idle_seconds) : "X"));
     setText(card, ".uptime", formatDuration(device.uptime_seconds, "0초"));
     setText(card, ".last-seen", formatAgo(ageSeconds));
-    card.querySelector(".device-card-actions").hidden = !currentProfile?.is_admin;
+    card.querySelector(".device-menu").hidden = !currentProfile?.is_admin;
     const cardAtIndex = elements.grid.children[index];
     if (cardAtIndex !== card) elements.grid.insertBefore(card, cardAtIndex || null);
   });
@@ -600,6 +611,15 @@ function setOSIcon(card, os) {
   mark.innerHTML = OS_ICON_SVGS[normalizedOS];
 }
 
+function closeDeviceMenus() {
+  for (const card of elements.grid.children) {
+    const popover = card.querySelector(".device-menu-popover");
+    const button = card.querySelector(".device-menu-button");
+    if (popover) popover.hidden = true;
+    if (button) button.setAttribute("aria-expanded", "false");
+  }
+}
+
 elements.loginForm.addEventListener("submit", signIn);
 elements.changeAccount.addEventListener("click", changeRememberedAccount);
 elements.logout.addEventListener("click", logout);
@@ -610,6 +630,12 @@ elements.addUser.addEventListener("click", openAddUserDialog);
 elements.closeDialog.addEventListener("click", () => elements.addUserDialog.close());
 elements.cancelDialog.addEventListener("click", () => elements.addUserDialog.close());
 elements.addUserForm.addEventListener("submit", createUser);
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".device-menu")) closeDeviceMenus();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeDeviceMenus();
+});
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) cleanupRealtime();
   else if (currentSession) loadDevices();

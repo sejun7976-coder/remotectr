@@ -90,6 +90,7 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(114, 245, 1
 .card-identity { min-width: 0; }
 .device-name { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; letter-spacing: -.025em; }
 .device-meta { margin: 4px 0 0; overflow: hidden; color: var(--muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.card-controls { display: flex; align-items: center; gap: 6px; }
 .status-pill { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .7rem; }
 .status-pill i { width: 6px; height: 6px; border-radius: 50%; background: #606a74; }
 .device-card[data-status="online"] .status-pill { color: var(--green); border-color: #2a5039; }
@@ -107,9 +108,15 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(114, 245, 1
 .metrics > div:last-child { padding-right: 0; }
 .metrics dt { color: var(--muted); font-size: .68rem; }
 .metrics dd { margin: 5px 0 0; overflow: hidden; color: #d9dee3; font-size: .77rem; text-overflow: ellipsis; white-space: nowrap; }
-.device-card-actions { display: flex; justify-content: flex-end; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
-.device-card-actions[hidden] { display: none; }
-.device-delete-button { padding: 6px 9px; font-size: .7rem; }
+.device-menu { position: relative; }
+.device-menu[hidden] { display: none; }
+.device-menu-button { width: 30px; height: 30px; color: #9aa4ae; }
+.device-menu-button svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+.device-menu-button[aria-expanded="true"] { color: var(--text); background: #1a2027; }
+.device-menu-popover { position: absolute; top: calc(100% + 7px); right: 0; z-index: 5; min-width: 112px; padding: 5px; border: 1px solid #353e48; border-radius: 9px; background: #11161c; box-shadow: 0 14px 36px rgba(0, 0, 0, .45); }
+.device-menu-popover[hidden] { display: none; }
+.device-delete-button { width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; color: #ff9898; background: transparent; font: inherit; font-size: .72rem; text-align: left; cursor: pointer; }
+.device-delete-button:hover { background: rgba(255, 91, 91, .1); }
 .empty-state { padding: 80px 20px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; }
 .empty-state h2 { margin: 0; font-size: 1rem; }
 .empty-state p { margin: 8px 0 0; color: var(--muted); font-size: .82rem; }

@@ -8,10 +8,10 @@
   <meta name="description" content="RemoteCtr 기기 상태 대시보드">
   <title>RemoteCtr</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2314171c%22/><circle cx=%2232%22 cy=%2232%22 r=%2212%22 fill=%22%237cffb2%22/></svg>">
-  <link rel="stylesheet" href="./styles.css?v=20260910-4">
+  <link rel="stylesheet" href="./styles.css?v=20260911-1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0"></script>
   <script src="./config.js"></script>
-  <script src="./app.js?v=20260910-4" defer></script>
+  <script src="./app.js?v=20260911-1" defer></script>
 </head>
 <body>
   <section id="authView" class="auth-view">
@@ -84,10 +84,19 @@
 
   <template id="deviceTemplate">
     <article class="device-card">
-      <div class="card-top"><div class="os-mark" aria-hidden="true"></div><div class="card-identity"><h2 class="device-name"></h2><p class="device-meta"></p></div><span class="status-pill"><i></i><span></span></span></div>
+      <div class="card-top">
+        <div class="os-mark" aria-hidden="true"></div>
+        <div class="card-identity"><h2 class="device-name"></h2><p class="device-meta"></p></div>
+        <div class="card-controls">
+          <span class="status-pill"><i></i><span></span></span>
+          <div class="device-menu" hidden>
+            <button class="icon-button device-menu-button" type="button" aria-label="기기 메뉴" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>
+            <div class="device-menu-popover" role="menu" hidden><button class="device-delete-button" type="button" role="menuitem">기기 삭제</button></div>
+          </div>
+        </div>
+      </div>
       <div class="activity-panel"><span>현재 활동</span><strong class="activity-name"></strong><small class="window-title"></small></div>
       <dl class="metrics"><div><dt>자리 비움</dt><dd class="idle-time"></dd></div><div><dt>가동시간</dt><dd class="uptime"></dd></div><div><dt>마지막 확인</dt><dd class="last-seen"></dd></div></dl>
-      <div class="device-card-actions" hidden><button class="plain-button danger-button device-delete-button" type="button">기기 삭제</button></div>
     </article>
   </template>
 </body>
