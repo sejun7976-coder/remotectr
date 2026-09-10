@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c0f">
+  <meta name="description" content="RemoteCtr 기기 상태 대시보드">
+  <title>RemoteCtr</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2314171c%22/><circle cx=%2232%22 cy=%2232%22 r=%2212%22 fill=%22%237cffb2%22/></svg>">
+  <link rel="stylesheet" href="./styles.css?v=20260910-3">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js?v=20260910-3" defer></script>
+</head>
+<body>
+  <section id="authView" class="auth-view">
+    <div class="login-card">
+      <div class="brand login-brand"><span class="brand-mark" aria-hidden="true"><span></span></span><span>RemoteCtr</span></div>
+      <h1>로그인</h1>
+      <form id="loginForm" class="login-form">
+        <div id="rememberedAccount" class="remembered-account" hidden>
+          <div><span>아이디</span><strong id="rememberedUsername"></strong></div>
+          <button id="changeAccountButton" class="plain-button" type="button">변경</button>
+        </div>
+        <label id="usernameLabel"><span>아이디</span><input id="usernameInput" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" placeholder="아이디" required></label>
+        <label><span>비밀번호</span><input id="passwordInput" name="password" type="password" autocomplete="current-password" maxlength="256" placeholder="비밀번호" required></label>
+        <label class="remember-choice"><input id="rememberAccountInput" type="checkbox" checked><span>아이디 기억</span></label>
+        <button id="loginButton" class="primary-button" type="submit">로그인</button>
+      </form>
+      <div id="authNotice" class="notice auth-notice" role="status" aria-live="polite" hidden></div>
+    </div>
+  </section>
+
+  <main id="dashboardView" class="shell" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><span></span></span><span>RemoteCtr</span></div>
+      <nav class="main-nav" aria-label="주 메뉴">
+        <button id="devicesNav" class="nav-button active" type="button">기기</button>
+        <button id="usersNav" class="nav-button" type="button" hidden>사용자</button>
+      </nav>
+      <div class="top-actions">
+        <span id="refreshLabel" class="refresh-label" aria-live="polite">연결 중</span>
+        <button id="refreshButton" class="icon-button" type="button" aria-label="새로고침" title="새로고침"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg></button>
+        <div class="account"><span id="accountName"></span><button id="logoutButton" class="plain-button" type="button">로그아웃</button></div>
+      </div>
+    </header>
+
+    <section id="devicesView" class="content-view">
+      <div class="page-head">
+        <div><h1>기기 상태</h1><span id="generatedAt" class="subtle"></span></div>
+        <div class="summary" aria-label="기기 상태 요약">
+          <div><strong id="onlineCount" class="online-text">0</strong><span>온라인</span></div>
+          <div><strong id="awayCount" class="away-text">0</strong><span>자리 비움</span></div>
+          <div><strong id="offlineCount">0</strong><span>오프라인</span></div>
+        </div>
+      </div>
+      <div id="deviceNotice" class="notice" hidden></div>
+      <div id="deviceGrid" class="device-grid" aria-live="polite" aria-busy="true"></div>
+      <div id="emptyState" class="empty-state" hidden><h2>표시할 기기가 없습니다</h2><p>관리자에게 기기 접근 권한을 요청하세요.</p></div>
+    </section>
+
+    <section id="usersView" class="content-view" hidden>
+      <div class="page-head compact-head">
+        <div><h1>사용자</h1><span id="userCount" class="subtle">0명</span></div>
+        <button id="addUserButton" class="primary-button small-button" type="button">사용자 추가</button>
+      </div>
+      <div id="userNotice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="userList" class="user-list"></div>
+    </section>
+  </main>
+
+  <dialog id="addUserDialog">
+    <form id="addUserForm">
+      <div class="dialog-head"><h2>사용자 추가</h2><button id="closeDialogButton" class="icon-button close-button" type="button" aria-label="닫기">×</button></div>
+      <label><span>아이디</span><input id="newUsernameInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" pattern="[a-z][a-z0-9_-]{2,31}" minlength="3" maxlength="32" placeholder="영문 소문자로 시작" required></label>
+      <label><span>표시 이름</span><input id="newDisplayNameInput" type="text" autocomplete="off" maxlength="60" placeholder="이름" required></label>
+      <label><span>초기 비밀번호</span><input id="newUserPasswordInput" type="password" autocomplete="new-password" minlength="12" maxlength="256" placeholder="12자 이상" required></label>
+      <fieldset class="device-picker"><legend>볼 수 있는 PC</legend><div id="newUserDevices" class="checkbox-list"></div></fieldset>
+      <div id="dialogNotice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div class="dialog-actions"><button id="cancelDialogButton" class="plain-button" type="button">취소</button><button id="createUserButton" class="primary-button" type="submit">추가</button></div>
+    </form>
+  </dialog>
+
+  <template id="deviceTemplate">
+    <article class="device-card">
+      <div class="card-top"><div class="os-mark" aria-hidden="true"></div><div class="card-identity"><h2 class="device-name"></h2><p class="device-meta"></p></div><span class="status-pill"><i></i><span></span></span></div>
+      <div class="activity-panel"><span>현재 활동</span><strong class="activity-name"></strong><small class="window-title"></small></div>
+      <dl class="metrics"><div><dt>자리 비움</dt><dd class="idle-time"></dd></div><div><dt>가동시간</dt><dd class="uptime"></dd></div><div><dt>마지막 확인</dt><dd class="last-seen"></dd></div></dl>
+    </article>
+  </template>
+</body>
+</html>
