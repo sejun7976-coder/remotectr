@@ -1,6 +1,12 @@
 const config = window.REMOTECTR_CONFIG || {};
 const FALLBACK_SYNC_MS = 5 * 60 * 1000;
 const REMEMBERED_USERNAME_COOKIE = "remotectr_username";
+const OS_ICON_SVGS = Object.freeze({
+  windows: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.2 10.5 4v7.2H3V5.2Zm8.5-1.4L21 2.4v8.8h-9.5V3.8ZM3 12.2h7.5v7.2L3 18.2v-6Zm8.5 0H21V21l-9.5-1.4v-7.4Z"/></svg>',
+  darwin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.9 12.7c0-2.3 1.9-3.4 2-3.5a5.1 5.1 0 0 0-4-2.2c-1.7-.2-3.3 1-4.1 1-.9 0-2.2-1-3.6-1-1.8 0-3.5 1.1-4.5 2.7-1.9 3.3-.5 8.2 1.4 10.9.9 1.3 2 2.8 3.5 2.7 1.4 0 2-.9 3.7-.9 1.7 0 2.2.9 3.7.9 1.5 0 2.5-1.4 3.4-2.7a10.6 10.6 0 0 0 1.6-3.3 4.8 4.8 0 0 1-3.1-4.6ZM13.8 5.2A4.8 4.8 0 0 0 15 1.8a4.9 4.9 0 0 0-3.2 1.6 4.6 4.6 0 0 0-1.2 3.3 4 4 0 0 0 3.2-1.5Z"/></svg>',
+  linux: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><path d="M7.2 15.3C6.3 13.8 6 12.1 6.4 10.5c.6-2.1 1.7-2.5 2-4.5C8.7 3.8 10 2 12 2s3.3 1.8 3.6 4c.3 2 1.4 2.4 2 4.5.4 1.6.1 3.3-.8 4.8"/><path d="M8 13.2c.8-1.1 2.2-1.8 4-1.8s3.2.7 4 1.8c.8 1.2.7 3.8-.4 5.2-1 1.3-2.2 1.6-3.6 1.6s-2.6-.3-3.6-1.6c-1.1-1.4-1.2-4-.4-5.2Z"/><path d="m10.4 9.2 1.6.9 1.6-.9M8.5 20.1 5 21.5m10.5-1.4 3.5 1.4"/></g><circle cx="10.3" cy="6.8" r=".8" fill="currentColor"/><circle cx="13.7" cy="6.8" r=".8" fill="currentColor"/></svg>',
+  unknown: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></g></svg>',
+});
 
 const elements = {
   authView: document.querySelector("#authView"),
@@ -309,18 +315,23 @@ function renderDevices() {
     if (!card) {
       card = elements.template.content.firstElementChild.cloneNode(true);
       card.dataset.deviceId = device.id;
+      const deleteButton = card.querySelector(".device-delete-button");
+      deleteButton.addEventListener("click", () => removeDevice(card.dataset.deviceId, card.dataset.deviceName, deleteButton));
     }
     if (card.dataset.status !== status) card.dataset.status = status;
-    setText(card, ".device-name", device.device_name || device.device_key);
+    const deviceName = device.device_name || device.device_key;
+    card.dataset.deviceName = deviceName;
+    setText(card, ".device-name", deviceName);
     setText(card, ".device-meta", `${osLabel(device.os)} · ${device.arch || "알 수 없음"}`);
     setText(card, ".status-pill span", statusLabel(status));
-    setText(card, ".os-mark", osMark(device.os));
+    setOSIcon(card, device.os);
     const isOffline = status === "offline";
     setText(card, ".activity-name", isOffline ? "—" : (device.activity || device.activity_kind || "확인 불가"));
     setText(card, ".window-title", !isOffline && device.window_title ? device.window_title : "");
-    setText(card, ".idle-time", isOffline ? "—" : formatDuration(device.idle_seconds, "방금"));
+    setText(card, ".idle-time", isOffline ? "—" : (status === "away" ? formatIdleMinutes(device.idle_seconds) : "X"));
     setText(card, ".uptime", formatDuration(device.uptime_seconds, "0초"));
     setText(card, ".last-seen", formatAgo(ageSeconds));
+    card.querySelector(".device-card-actions").hidden = !currentProfile?.is_admin;
     const cardAtIndex = elements.grid.children[index];
     if (cardAtIndex !== card) elements.grid.insertBefore(card, cardAtIndex || null);
   });
@@ -449,6 +460,23 @@ async function removeUser(user, button) {
   }
 }
 
+async function removeDevice(deviceID, deviceName, button) {
+  if (!currentProfile?.is_admin) return;
+  if (!window.confirm(`${deviceName} 기기를 삭제할까요?\n\n삭제하면 이 기기의 인증 토큰과 사용자 연결도 폐기됩니다. 다시 사용하려면 설치 프로그램에서 재등록해야 합니다.`)) return;
+  setButtonLoading(button, true, "삭제 중…", "기기 삭제");
+  hideNotice(elements.deviceNotice);
+  try {
+    await callControl("delete_device", { device_id: deviceID });
+    await loadDevices();
+    showNotice(elements.deviceNotice, `${deviceName} 기기를 삭제했습니다.`, "success");
+  } catch (error) {
+    const message = error.code === "not_found" ? "이미 삭제된 기기입니다." : "기기를 삭제하지 못했습니다.";
+    showNotice(elements.deviceNotice, message, "error");
+  } finally {
+    if (button.isConnected) setButtonLoading(button, false, "삭제 중…", "기기 삭제");
+  }
+}
+
 function openAddUserDialog() {
   elements.addUserForm.reset();
   elements.newUserDevices.replaceChildren();
@@ -545,6 +573,10 @@ function formatDuration(value, zeroLabel) {
   return `${Math.floor(seconds)}초`;
 }
 
+function formatIdleMinutes(value) {
+  return `${Math.max(1, Math.floor((Number(value) || 0) / 60))}분`;
+}
+
 function formatAgo(seconds) {
   if (!Number.isFinite(seconds)) return "기록 없음";
   if (seconds < 8) return "방금";
@@ -560,7 +592,13 @@ function formatClock(date) {
 
 function statusLabel(status) { return ({ online: "온라인", away: "자리 비움", offline: "오프라인" })[status]; }
 function osLabel(os) { return ({ windows: "Windows", darwin: "macOS", linux: "Linux" })[os] || "Unknown"; }
-function osMark(os) { return ({ windows: "WIN", darwin: "MAC", linux: "LNX" })[os] || "PC"; }
+function setOSIcon(card, os) {
+  const mark = card.querySelector(".os-mark");
+  const normalizedOS = Object.hasOwn(OS_ICON_SVGS, os) ? os : "unknown";
+  if (mark.dataset.os === normalizedOS) return;
+  mark.dataset.os = normalizedOS;
+  mark.innerHTML = OS_ICON_SVGS[normalizedOS];
+}
 
 elements.loginForm.addEventListener("submit", signIn);
 elements.changeAccount.addEventListener("click", changeRememberedAccount);
